@@ -1,0 +1,266 @@
+<div class="modal-dialog" role="document">
+	<div class="modal-content">
+		<div class="modal-body">
+			<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+				<span aria-hidden="true">&times;</span>
+			</button>
+			<ul class="nav nav-tabs">
+				<li class="nav-item">
+					<a class="nav-link active" href="#challenge">Challenge</a>
+				</li>
+				{% block solves %}
+					<li class="nav-item">
+						<a class="nav-link challenge-solves" href="#solves">
+							{% if solves != None %}
+								{{ solves }} {% if solves > 1 %}Solves{% else %}Solves{% endif %}
+							{% endif %}
+						</a>
+					</li>
+				{% endblock %}
+			</ul>
+			<div role="tabpanel">
+				<div class="tab-content">
+					<div role="tabpanel" class="tab-pane fade show active" id="challenge">
+						<h2 id="challenge-name" class='challenge-name text-center pt-3'>
+							{{ challenge.name }}
+						</h2>
+						<h3 class="challenge-value text-center">
+							{{ challenge.value }}
+						</h3>
+
+						<div id="challenge-tags" class="challenge-tags text-center">
+							{% block tags %}
+								{% for tag in tags %}
+									<span class='badge badge-info challenge-tag'>{{ tag }}</span>
+								{% endfor %}
+							{% endblock %}
+						</div>
+
+						<span id="challenge-desc" class="challenge-desc">{% block description %}{{ challenge.html }}{% endblock %}</span>
+
+						<span id="challenge-con-info" class="challenge-connection-info">
+							{% block connection_info %}
+								{% set conn = challenge.connection_info %}
+								{% if not conn %}
+								{% elif conn.startswith("http") %}
+									{{ conn | urlize(target="_blank") }}
+								{% else %}
+									<code>{{ conn }}</code>
+								{% endif %}
+							{% endblock %}
+						</span>
+
+						<div id="challenge-hints" class="challenge-hints hint-row row">
+							{% for hint in hints %}
+								<div class='col-md-12 hint-button-wrapper text-center mb-3'>
+									<a class="btn btn-info btn-hint btn-block load-hint" href="javascript:;" data-hint-id="{{ hint.id }}">
+										{% if hint.content %}
+											<small>
+												View Hint
+											</small>
+										{% else %}
+											{% if hint.cost %}
+												<small>
+													Unlock Hint for {{ hint.cost }} points
+												</small>
+											{% else %}
+												<small>
+													View Hint
+												</small>
+											{% endif %}
+										{% endif %}
+									</a>
+								</div>
+							{% endfor %}
+						</div>
+
+						<div id="challenge-files" class="row challenge-files text-center pb-3">
+							{% for file in files %}
+								<div class='col-md-4 col-sm-4 col-xs-12 file-button-wrapper d-block'>
+									<a class='btn btn-info btn-file mb-1 d-inline-block px-2 w-100 text-truncate'
+									   href='{{ file }}'>
+										<i class="fas fa-download"></i>
+										<small>
+											{% set segments = file.split('/') %}
+											{% set file = segments | last %}
+											{% set token = file.split('?') | last %}
+											{% if token %}
+												{{ file | replace("?" + token, "") }}
+											{% else %}
+												{{ file }}
+											{% endif %}
+										</small>
+									</a>
+								</div>
+							{% endfor %}
+						</div>
+
+						{% if max_attempts > 0 %}
+						<div class="row text-center">
+							<div class="col-md-12">
+								<p>
+									{{ attempts }}/{{ max_attempts }} attempt{{ max_attempts|pluralize }}
+								</p>
+							</div>
+						</div>
+						{% endif %}
+
+						<script>
+							document.getElementById("show-survey").addEventListener("click", function () {
+								document.getElementById("survey").classList.remove("d-none");
+								document.getElementById("flag-submission").classList.remove("d-none");
+								document.getElementById("have-flag-button").classList.add("d-none");
+								document.getElementById("challenge-desc").classList.add("d-none");
+								document.getElementById("challenge-con-info").classList.add("d-none");
+								document.getElementById("challenge-tags").classList.add("d-none");
+								document.getElementById("challenge-hints").classList.add("d-none");
+								document.getElementById("challenge-files").classList.add("d-none");
+								let name = document.getElementById("challenge-name").innerText;
+								document.getElementById("challenge-name").innerHTML = ("Rate " + name);
+							});
+
+							document.getElementById("no-wrapper").addEventListener("click", function () {
+								document.getElementById("yes-wrapper").classList.remove("btn-primary");
+								document.getElementById("yes-wrapper").classList.add("btn-secondary");
+								document.getElementById("no-wrapper").classList.remove("btn-secondary");
+								document.getElementById("no-wrapper").classList.add("btn-primary");
+							});	
+
+							document.getElementById("yes-wrapper").addEventListener("click", function () {
+								document.getElementById("yes-wrapper").classList.remove("btn-secondary");
+								document.getElementById("yes-wrapper").classList.add("btn-primary");
+								document.getElementById("no-wrapper").classList.remove("btn-primary");
+								document.getElementById("no-wrapper").classList.add("btn-secondary");
+							});	
+
+							document.getElementById("challenge-submit").addEventListener("click", function () {
+
+								// Collect data
+								let name = document.getElementById("challenge-name").innerText;
+								let challenge_name = name.substring( name.indexOf(" ") + 1, name.length );
+								let difficulty = document.getElementById("difficulty").value;
+								let enjoyment = document.getElementById("enjoyment").value;
+								let learned = document.getElementById("yes").checked;
+
+								// Reset
+								document.getElementById("survey").classList.add("d-none");
+								document.getElementById("flag-submission").classList.add("d-none");
+								document.getElementById("have-flag-button").classList.remove("d-none");
+								document.getElementById("challenge-desc").classList.remove("d-none");
+								document.getElementById("challenge-con-info").classList.remove("d-none");
+								document.getElementById("challenge-tags").classList.remove("d-none");
+								document.getElementById("challenge-hints").classList.remove("d-none");
+								document.getElementById("challenge-files").classList.remove("d-none");
+								document.getElementById("challenge-name").innerHTML = challenge_name;
+
+								// Send data
+								var xhr = new XMLHttpRequest();
+								xhr.open("POST", "https://web.ctf.nullify.uno:8090/feedback", true);
+								xhr.setRequestHeader('Content-Type', 'application/json');
+								xhr.send(JSON.stringify({
+									challenge: challenge_name,
+									difficulty: difficulty,
+									enjoyment: enjoyment,
+									learned: learned
+								}));
+							});
+
+						</script>
+
+						<div id="have-flag-button" class="row">
+							<button id="show-survey" class="btn btn-md btn-outline-secondary w-100">I have the Flag!</button>
+						</div>
+
+						<!-- Survey Prompt -->
+						<div id="survey" class="survey d-none" style="padding: 1em;">
+
+							<!-- Difficulty -->
+							<div class="row">
+								<h6>Difficulty:</h6>
+							</div>
+							<div class="row">
+								<input type="range" min="0" max="10" class="form-range w-100 mb-1" id="difficulty">
+							</div>
+							<div class="row mb-3">
+								<label for="difficulty" class="mr-auto text-muted">Super Easy</label>
+								<label for="" class="text-muted">Way too Hard</label>
+							</div>
+							
+							<!-- Enjoyment -->
+							<div class="row">
+								<h6>Enjoyment:</h6>
+							</div>
+							<div class="row">
+								<input type="range" min="0" max="10" class="form-range w-100 mb-1" id="enjoyment">
+							</div>
+							<div class="row mb-3">
+								<label for="enjoyment" class="mr-auto text-muted">Hated it</label>
+								<label for="" class="text-muted">Super fun</label>
+							</div>
+
+							<!-- Learning -->
+							<div class="row">
+								<h6 class="mb-3">I learned something new!</h6>
+							</div>
+							<div class="row mb-3">
+								<div class="btn-group btn-group-toggle w-100" data-toggle="buttons">
+									<label id="yes-wrapper" class="btn btn-primary">
+									  <input type="radio" name="options" id="yes" autocomplete="off"> Yes
+									</label>
+									<label id="no-wrapper" class="btn btn-secondary">
+									  <input type="radio" name="options" id="no" autocomplete="off"> No
+									</label>
+								  </div>
+							</div>
+						</div>
+
+						<!-- Actual flag submission row -->
+						<div id="flag-submission" class="row submit-row d-none">
+							<div class="col-md-9 form-group">
+								{% block input %}
+									<input id="challenge-id" class="challenge-id" type="hidden" value="{{ challenge.id }}">
+									<input id="challenge-input" class="challenge-input" type="text" name="answer" placeholder="Flag"/>
+								{% endblock %}
+							</div>
+							<div class="col-md-3 form-group key-submit">
+								{% block submit %}
+								<button id="challenge-submit" class="challenge-submit" type="submit">
+									Submit
+								</button>
+								{% endblock %}
+							</div>
+						</div>
+
+						<div class="row notification-row mt-3">
+							<div class="col-md-12">
+								<div id="result-notification" class="alert alert-dismissable text-center w-100"
+									 role="alert" style="display: none;">
+									<strong id="result-message"></strong>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div role="tabpanel" class="tab-pane fade" id="solves">
+						<div class="row">
+							<div class="col-md-12">
+								<table class="table table-striped text-center">
+									<thead>
+									<tr>
+										<td><b>Name</b>
+										</td>
+										<td><b>Date</b>
+										</td>
+									</tr>
+									</thead>
+									<tbody id="challenge-solves-names">
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
